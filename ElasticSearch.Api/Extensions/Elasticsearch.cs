@@ -11,6 +11,7 @@ namespace ElasticSearch.Api.Extensions
             var pool = new SingleNodeConnectionPool(new Uri(configuration.GetSection("Elastic")["Url"]!));
 
             var settings = new ConnectionSettings(pool);
+           
             var client = new ElasticClient(settings);
            services.AddSingleton(client);
         }
