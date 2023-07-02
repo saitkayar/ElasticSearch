@@ -1,23 +1,23 @@
-﻿using ElasticSearch.Api.DTOs;
+﻿using Elastic.Clients.Elasticsearch;
+using ElasticSearch.Api.DTOs;
 using ElasticSearch.Api.Models;
-using Nest;
 
 namespace ElasticSearch.Api.Repository
 {
-    public class ProductRepository
+	public class ProductRepository
     {
-        private readonly ElasticClient _client;
+        private readonly ElasticsearchClient _client;
 
-        public ProductRepository(ElasticClient client)
+        public ProductRepository(ElasticsearchClient client)
         {
             _client = client;
         }
         public async Task<Product?> SaveAsync(Product product)
         {
             product.Created = DateTime.Now;
-            var response = await _client.IndexAsync(product, x => x.Index("products").Id(Guid.NewGuid().ToString()));
+            var response = await _client.IndexAsync(product, x => x.Index("products"));
 
-            if (!response.IsValid)
+            if (!response.IsValidResponse)
             {
                 return null;
             }
@@ -31,6 +31,10 @@ namespace ElasticSearch.Api.Repository
         {
             var result = await _client.SearchAsync<Product>(s => s.Index("products").Query(q => q.MatchAll()));
 
+            foreach (var item in result.Hits)
+            {
+                item.Source.Id = item.Id;
+            }
             return result.Documents;
         }
 
@@ -44,15 +48,15 @@ namespace ElasticSearch.Api.Repository
 
         public async Task<bool> Update(ProductUpdateDto updateDto)
         {
-            var response = await _client.UpdateAsync<Product, ProductUpdateDto>(updateDto.id, x => x.Index("products").Doc(updateDto));
+            var response = await _client.UpdateAsync<Product, ProductUpdateDto>("products",updateDto.id);
 
-            return response.IsValid;
+            return response.IsValidResponse;
         }
         public async Task<bool> Delete(string id)
         {
             var response = await _client.DeleteAsync<Product>(id, x => x.Index("products"));
 
-            return response.IsValid;
+            return response.IsValidResponse;
         }
     }
 }
